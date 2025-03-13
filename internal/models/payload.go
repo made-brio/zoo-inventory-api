@@ -8,6 +8,7 @@ type UpdateAnimalRequest struct {
 }
 
 type CreateAnimalRequest struct {
+	ID    int     `json:"id"`
 	Name  string `json:"name" binding:"required"`
 	Class string `json:"class"  binding:"required"`
 	Legs  uint8  `json:"legs"  binding:"required"`

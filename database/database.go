@@ -17,7 +17,7 @@ func DBMigrate(dbParam *sql.DB) error {
 		FileSystem: dbMigrations,
 		Root:       "migrations",
 	}
-	n, errs := migrate.Exec(dbParam, "postgres", migrations, migrate.Up)
+	n, errs := migrate.Exec(dbParam, "mysql", migrations, migrate.Up)
 	if errs != nil {
 		panic(errs)
 	}

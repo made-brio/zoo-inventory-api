@@ -7,132 +7,94 @@ import (
 	"zoo-inventory/internal/models"
 )
 
-func CreateAnimal(db *sql.DB, payload models.CreateAnimalRequest) (err error) {
-	sql := `INSERT INTO animals (name, class, legs) VALUES ($1, $2, $3)`
-	_, err = db.Exec(sql, payload.Name, payload.Class, payload.Legs)
-	if err != nil {
-		return err
-	}
-
-	return
+func CreateAnimal(db *sql.DB, payload models.CreateAnimalRequest) error {
+	sql := `INSERT INTO animals (id, name, class, legs) VALUES (?, ?, ?, ?)`
+	_, err := db.Exec(sql, payload.ID, payload.Name, payload.Class, payload.Legs)
+	return err
 }
 
 func UpdateAnimal(db *sql.DB, animal models.UpdateAnimalRequest) error {
-	// Dynamic updated query
 	setClauses := []string{}
 	values := []interface{}{}
-	counter := 1
 
 	if animal.Name != nil {
-		setClauses = append(setClauses, fmt.Sprintf("name = $%d", counter))
+		setClauses = append(setClauses, "name = ?")
 		values = append(values, *animal.Name)
-		counter++
 	}
 	if animal.Class != nil {
-		setClauses = append(setClauses, fmt.Sprintf("class = $%d", counter))
+		setClauses = append(setClauses, "class = ?")
 		values = append(values, *animal.Class)
-		counter++
 	}
 	if animal.Legs != nil {
-		setClauses = append(setClauses, fmt.Sprintf("legs = $%d", counter))
+		setClauses = append(setClauses, "legs = ?")
 		values = append(values, *animal.Legs)
-		counter++
 	}
 
-	// Ensure at least one field is being updated
+	// Pastikan ada field yang di-update
 	if len(setClauses) == 0 {
 		return fmt.Errorf("no fields to update")
 	}
 
-	// Add the WHERE clause
+	// Tambahkan WHERE clause di akhir
 	values = append(values, animal.ID)
-	sqlQuery := fmt.Sprintf("UPDATE animals SET %s WHERE id = $%d", strings.Join(setClauses, ", "), counter)
+	sqlQuery := fmt.Sprintf("UPDATE animals SET %s WHERE id = ?", strings.Join(setClauses, ", "))
+
 	_, err := db.Exec(sqlQuery, values...)
 	return err
 }
 
-func DeleteAnimal(db *sql.DB, id int) (err error) {
-	sql := "DELETE FROM animals WHERE id = $1"
-	_, err = db.Exec(sql, id)
-	return
+func DeleteAnimal(db *sql.DB, id int) error {
+	sql := "DELETE FROM animals WHERE id = ?"
+	_, err := db.Exec(sql, id)
+	return err
 }
 
-func GetAllAnimals(db *sql.DB) (result []models.Animal, err error) {
+func GetAllAnimals(db *sql.DB) ([]models.Animal, error) {
 	sql := "SELECT id, name, class, legs FROM animals"
-
 	rows, err := db.Query(sql)
 	if err != nil {
-		return
+		return nil, err
 	}
-
 	defer rows.Close()
+
+	var result []models.Animal
 	for rows.Next() {
 		var animal models.Animal
-		err = rows.Scan(
-			&animal.ID,
-			&animal.Name,
-			&animal.Class,
-			&animal.Legs)
-
-		if err != nil {
-			return
+		if err := rows.Scan(&animal.ID, &animal.Name, &animal.Class, &animal.Legs); err != nil {
+			return nil, err
 		}
-
 		result = append(result, animal)
 	}
 
-	return
+	return result, rows.Err()
 }
 
-func GetAnimalByID(db *sql.DB, id int) (result models.Animal, err error) {
-	sqlQuery := "SELECT id, name, class, legs FROM animals WHERE id = $1"
-
-	// Eksekusi query dengan parameter id
-	err = db.QueryRow(sqlQuery, id).Scan(
-		&result.ID,
-		&result.Name,
-		&result.Class,
-		&result.Legs,
-	)
-
-	// Tangani jika tidak ada data ditemukan
+func GetAnimalByID(db *sql.DB, id int) (models.Animal, error) {
+	sqlQuery := "SELECT id, name, class, legs FROM animals WHERE id = ?"
+	var result models.Animal
+	err := db.QueryRow(sqlQuery, id).Scan(&result.ID, &result.Name, &result.Class, &result.Legs)
 	if err == sql.ErrNoRows {
-		return result, nil // Kembalikan struct kosong tanpa error
-	} else if err != nil {
-		return result, err // Kembalikan error lain jika terjadi
+		return result, sql.ErrNoRows
 	}
-
-	return result, nil
+	return result, err
 }
 
-func GetAnimalsByClass(db *sql.DB, class string) (result []models.Animal, err error) {
-	sqlQuery := `SELECT id, name, class, legs FROM animals WHERE class = $1`
-
+func GetAnimalsByClass(db *sql.DB, class string) ([]models.Animal, error) {
+	sqlQuery := `SELECT id, name, class, legs FROM animals WHERE class = ?`
 	rows, err := db.Query(sqlQuery, class)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	var result []models.Animal
 	for rows.Next() {
 		var animal models.Animal
-		err = rows.Scan(
-			&animal.ID,
-			&animal.Name,
-			&animal.Class,
-			&animal.Legs,
-		)
-
-		if err != nil {
+		if err := rows.Scan(&animal.ID, &animal.Name, &animal.Class, &animal.Legs); err != nil {
 			return nil, err
 		}
-
 		result = append(result, animal)
 	}
 
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	return result, nil
+	return result, rows.Err()
 }

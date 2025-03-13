@@ -18,6 +18,7 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB) {
 	animalRoutes := router.Group("/api/animals")
 	{
 		animalRoutes.POST("/", animalController.CreateAnimal)
+		animalRoutes.PUT("/:id", animalController.UpdateAnimal)
 		animalRoutes.GET("/", animalController.GetAllAnimals)
 		animalRoutes.GET("/:id", animalController.GetAnimalByID)
 		animalRoutes.GET("/class/:classId", animalController.GetAnimalsByClass)
